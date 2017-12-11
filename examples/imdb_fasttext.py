@@ -19,6 +19,7 @@ from keras.layers import Dense
 from keras.layers import Embedding
 from keras.layers import GlobalAveragePooling1D
 from keras.datasets import imdb
+from keras.utils import plot_model
 
 
 def create_ngram_set(input_list, ngram_value=2):
@@ -64,7 +65,7 @@ def add_ngram(sequences, token_indice, ngram_range=2):
 
 # Set parameters:
 # ngram_range = 2 will add bi-grams features
-ngram_range = 1
+ngram_range = 2
 max_features = 20000
 maxlen = 400
 batch_size = 32
@@ -128,6 +129,8 @@ model.add(Dense(1, activation='sigmoid'))
 model.compile(loss='binary_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
+
+plot_model(model, to_file='../output/examples/imdb_fasttext.png', show_shapes=True, show_layer_names=True)
 
 model.fit(x_train, y_train,
           batch_size=batch_size,

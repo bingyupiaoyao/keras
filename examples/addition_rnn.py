@@ -30,6 +30,9 @@ from keras.models import Sequential
 from keras import layers
 import numpy as np
 from six.moves import range
+from keras.utils import plot_model
+import keras
+from keras.models import Model
 
 
 class CharacterTable(object):
@@ -100,7 +103,7 @@ while len(questions) < TRAINING_SIZE:
     seen.add(key)
     # Pad the data with spaces such that it is always MAXLEN.
     q = '{}+{}'.format(a, b)
-    query = q + ' ' * (MAXLEN - len(q))
+    query = q + ' ' * (MAXLEN - len(q)) #用space padding
     ans = str(a + b)
     # Answers can be of maximum size DIGITS + 1.
     ans += ' ' * (DIGITS + 1 - len(ans))
@@ -116,9 +119,9 @@ print('Vectorization...')
 x = np.zeros((len(questions), MAXLEN, len(chars)), dtype=np.bool)
 y = np.zeros((len(questions), DIGITS + 1, len(chars)), dtype=np.bool)
 for i, sentence in enumerate(questions):
-    x[i] = ctable.encode(sentence, MAXLEN)
+    x[i] = ctable.encode(sentence, MAXLEN) # x[i] shape为7*12,7表示最大长度七个字符，每个字符都是one-hot，12个可能字符
 for i, sentence in enumerate(expected):
-    y[i] = ctable.encode(sentence, DIGITS + 1)
+    y[i] = ctable.encode(sentence, DIGITS + 1) # y[i] 4*12
 
 # Shuffle (x, y) in unison as the later parts of x will almost all be larger
 # digits.
@@ -133,8 +136,8 @@ split_at = len(x) - len(x) // 10
 (y_train, y_val) = y[:split_at], y[split_at:]
 
 print('Training Data:')
-print(x_train.shape)
-print(y_train.shape)
+print(x_train.shape) # (45000, 7, 12)
+print(y_train.shape) # (45000, 4, 12)
 
 print('Validation Data:')
 print(x_val.shape)
@@ -172,7 +175,12 @@ model.compile(loss='categorical_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
 model.summary()
-
+plot_model(model, to_file='../output/examples/addition_rnn.png', show_shapes=True, show_layer_names=True)
+#log_dir = "Z:\\Master\\Workspace\\Python\\Github\\KerasWithComments\\keras02\\keras\\logs\\examples\\addition_rnn"
+#tb_cb = keras.callbacks.TensorBoard(log_dir=log_dir, write_images=1, histogram_freq=1)
+# 设置log的存储位置，将网络权值以图片格式保持在tensorboard中显示，设置每一个周期计算一次网络的
+#权值，每层输出值的分布直方图
+#cbks = [tb_cb]
 # Train the model each generation and show predictions against the validation
 # dataset.
 for iteration in range(1, 200):
@@ -182,8 +190,21 @@ for iteration in range(1, 200):
     model.fit(x_train, y_train,
               batch_size=BATCH_SIZE,
               epochs=1,
+              #callbacks=cbks,
               validation_data=(x_val, y_val))
-    # Select 10 samples from the validation set at random so we can visualize
+
+    layers = model.layers
+    for layer in layers:
+        # 已有的model在load权重过后
+        # 取某一层的输出为输出新建为model，采用函数模型
+        dense1_layer_model = Model(inputs=model.input,
+                                   outputs=layer.output)
+        # 以这个model的预测值作为输出
+        dense1_output = dense1_layer_model.predict(x_train)
+        print(dense1_output.shape)
+        print(dense1_output[0])
+        #print(layer.output)
+    # Select 10 samples from the validation set at random so we ca visualize
     # errors.
     for i in range(10):
         ind = np.random.randint(0, len(x_val))

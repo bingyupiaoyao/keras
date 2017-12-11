@@ -20,6 +20,7 @@ from keras.models import Model
 from keras.datasets import cifar10
 import numpy as np
 import os
+from keras.utils import plot_model
 
 # Training params.
 batch_size = 32
@@ -133,6 +134,8 @@ model.compile(loss='categorical_crossentropy',
               optimizer=Adam(),
               metrics=['accuracy'])
 model.summary()
+
+plot_model(model, to_file='../output/examples/cifar10_resnet.png', show_shapes=True, show_layer_names=True)
 
 # Prepare model model saving directory.
 save_dir = os.path.join(os.getcwd(), 'saved_models')

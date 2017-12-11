@@ -22,10 +22,11 @@ from keras.layers import Dense, Activation
 from keras.layers import SimpleRNN
 from keras import initializers
 from keras.optimizers import RMSprop
+from keras.utils import plot_model
 
 batch_size = 32
-num_classes = 10
 epochs = 200
+num_classes = 10
 hidden_units = 100
 
 learning_rate = 1e-6
@@ -61,6 +62,7 @@ rmsprop = RMSprop(lr=learning_rate)
 model.compile(loss='categorical_crossentropy',
               optimizer=rmsprop,
               metrics=['accuracy'])
+plot_model(model, to_file='../output/examples/mnist_irnn.png', show_shapes=True, show_layer_names=True)
 
 model.fit(x_train, y_train,
           batch_size=batch_size,

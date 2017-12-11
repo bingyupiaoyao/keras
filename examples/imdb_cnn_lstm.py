@@ -12,6 +12,7 @@ from keras.layers import Embedding
 from keras.layers import LSTM
 from keras.layers import Conv1D, MaxPooling1D
 from keras.datasets import imdb
+from keras.utils import plot_model
 
 # Embedding
 max_features = 20000
@@ -65,6 +66,8 @@ model.add(Activation('sigmoid'))
 model.compile(loss='binary_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
+
+plot_model(model, to_file='../output/examples/imdb_cnn_lstm.png', show_shapes=True, show_layer_names=True)
 
 print('Train...')
 model.fit(x_train, y_train,

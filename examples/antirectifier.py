@@ -16,7 +16,7 @@ from keras.models import Sequential
 from keras import layers
 from keras.datasets import mnist
 from keras import backend as K
-
+from keras.utils import plot_model
 
 class Antirectifier(layers.Layer):
     '''This is the combination of a sample-wise
@@ -95,6 +95,9 @@ model.add(layers.Activation('softmax'))
 model.compile(loss='categorical_crossentropy',
               optimizer='rmsprop',
               metrics=['accuracy'])
+
+plot_model(model, to_file='../output/examples/antirectifier.png', show_shapes=True,
+           show_layer_names=True)
 
 # train the model
 model.fit(x_train, y_train,

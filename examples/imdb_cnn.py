@@ -9,11 +9,12 @@ Gets to 0.89 test accuracy after 2 epochs.
 from __future__ import print_function
 
 from keras.preprocessing import sequence
-from keras.models import Sequential
+from keras.models import Sequential,Model
 from keras.layers import Dense, Dropout, Activation
 from keras.layers import Embedding
 from keras.layers import Conv1D, GlobalMaxPooling1D
 from keras.datasets import imdb
+from keras.utils import plot_model
 
 # set parameters:
 max_features = 5000
@@ -23,7 +24,7 @@ embedding_dims = 50
 filters = 250
 kernel_size = 3
 hidden_dims = 250
-epochs = 2
+epochs = 1
 
 print('Loading data...')
 (x_train, y_train), (x_test, y_test) = imdb.load_data(num_words=max_features)
@@ -68,7 +69,21 @@ model.add(Activation('sigmoid'))
 model.compile(loss='binary_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
+plot_model(model, to_file='../output/examples/imdb_cnn.png', show_shapes=True, show_layer_names=True)
+
 model.fit(x_train, y_train,
           batch_size=batch_size,
           epochs=epochs,
           validation_data=(x_test, y_test))
+
+
+layers = model.layers
+for layer in layers:
+    # 已有的model在load权重过后
+    # 取某一层的输出为输出新建为model，采用函数模型
+    dense1_layer_model = Model(inputs=model.input,
+                               outputs=layer.output)
+    # 以这个model的预测值作为输出
+    dense1_output = dense1_layer_model.predict(x_train)
+    print(dense1_output.shape)
+    print(dense1_output[0])

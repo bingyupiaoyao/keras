@@ -69,6 +69,7 @@ from keras import layers
 from keras.layers import recurrent
 from keras.models import Model
 from keras.preprocessing.sequence import pad_sequences
+from keras.utils import plot_model
 
 
 def tokenize(sent):
@@ -213,11 +214,26 @@ model.compile(optimizer='adam',
               loss='categorical_crossentropy',
               metrics=['accuracy'])
 
+model.summary()
+plot_model(model, to_file='../output/examples/babi_rnn.png', show_shapes=True, show_layer_names=True)
+
 print('Training')
 model.fit([x, xq], y,
           batch_size=BATCH_SIZE,
           epochs=EPOCHS,
           validation_split=0.05)
+
+layers = model.layers
+for layer in layers:
+    # 已有的model在load权重过后
+    # 取某一层的输出为输出新建为model，采用函数模型
+    layer_model = Model(inputs=model.input,
+                        outputs=layer.output)
+    # 以这个model的预测值作为输出
+    layer_output = layer_model.predict([x, xq])
+    print(layer_output.shape)
+    print(layer_output[0])
+
 loss, acc = model.evaluate([tx, txq], ty,
                            batch_size=BATCH_SIZE)
 print('Test loss / test accuracy = {:.4f} / {:.4f}'.format(loss, acc))

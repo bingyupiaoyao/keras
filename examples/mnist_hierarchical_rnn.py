@@ -31,6 +31,7 @@ from keras.datasets import mnist
 from keras.models import Model
 from keras.layers import Input, Dense, TimeDistributed
 from keras.layers import LSTM
+from keras.utils import plot_model
 
 # Training parameters.
 batch_size = 32
@@ -65,6 +66,10 @@ row, col, pixel = x_train.shape[1:]
 x = Input(shape=(row, col, pixel))
 
 # Encodes a row of pixels using TimeDistributed Wrapper.
+# 去掉TimeDistributed之后： Input 0 is incompatible with layer lstm_1: expected ndim=3, found ndim=4
+# x实际上是(sample, row, col, dim) 4D
+# 而LSTM的input应该是3D，下面的含义是，将LSTM作用于每个row对应的(col,dim)，也就是row每个值都会用一个LSTM
+# TimeDistributed 就是把LSTM应用于每个row，即(row1, col, dim),(row2, col, dim)
 encoded_rows = TimeDistributed(LSTM(row_hidden))(x)
 
 # Encodes columns of encoded rows.
@@ -76,7 +81,7 @@ model = Model(x, prediction)
 model.compile(loss='categorical_crossentropy',
               optimizer='rmsprop',
               metrics=['accuracy'])
-
+plot_model(model, to_file='../output/examples/mnist_hierarchical_rnn.png', show_shapes=True, show_layer_names=True)
 # Training.
 model.fit(x_train, y_train,
           batch_size=batch_size,

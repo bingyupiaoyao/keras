@@ -53,9 +53,10 @@ from keras.optimizers import SGD
 from keras.utils.data_utils import get_file
 from keras.preprocessing import image
 import keras.callbacks
+from keras.utils import plot_model
 
 
-OUTPUT_DIR = 'image_ocr'
+OUTPUT_DIR = '../output/examples/image_ocr'
 
 # character classes and matching regex filter
 regex = r'^[a-z ]+$'
@@ -212,7 +213,7 @@ class TextImageGenerator(keras.callbacks.Callback):
         self.Y_len = [0] * self.num_words
 
         # monogram file is sorted by frequency in english speech
-        with codecs.open(self.monogram_file, mode='rt', encoding='utf-8') as f:
+        with codecs.open(self.monogram_file, mode='r', encoding='utf-8') as f:
             for line in f:
                 if len(tmp_string_list) == int(self.num_words * mono_fraction):
                     break
@@ -221,7 +222,7 @@ class TextImageGenerator(keras.callbacks.Callback):
                     tmp_string_list.append(word)
 
         # bigram file contains common word pairings in english speech
-        with codecs.open(self.bigram_file, mode='rt', encoding='utf-8') as f:
+        with codecs.open(self.bigram_file, mode='r', encoding='utf-8') as f:
             lines = f.readlines()
             for line in lines:
                 if len(tmp_string_list) == self.num_words:
@@ -281,7 +282,7 @@ class TextImageGenerator(keras.callbacks.Callback):
                 input_length[i] = self.img_w // self.downsample_factor - 2
                 label_length[i] = self.Y_len[index + i]
                 source_str.append(self.X_text[index + i])
-        inputs = {'the_input': X_data,
+        inputs = {'the_input': X_data,# 图片数据
                   'the_labels': labels,
                   'input_length': input_length,
                   'label_length': label_length,
@@ -481,6 +482,9 @@ def train(run_name, start_epoch, stop_epoch, img_w):
 
     # the loss calc occurs elsewhere, so use a dummy lambda func for the loss
     model.compile(loss={'ctc': lambda y_true, y_pred: y_pred}, optimizer=sgd)
+
+    plot_model(model, to_file='../output/examples/image_ocr.png', show_shapes=True, show_layer_names=True)
+
     if start_epoch > 0:
         weight_file = os.path.join(OUTPUT_DIR, os.path.join(run_name, 'weights%02d.h5' % (start_epoch - 1)))
         model.load_weights(weight_file)
@@ -499,7 +503,7 @@ def train(run_name, start_epoch, stop_epoch, img_w):
 
 
 if __name__ == '__main__':
-    run_name = datetime.datetime.now().strftime('%Y:%m:%d:%H:%M:%S')
+    run_name = datetime.datetime.now().strftime('%Y_%m_%d_%H_%M_%S')
     train(run_name, 0, 20, 128)
     # increase to wider images and start at epoch 20. The learned weights are reloaded
     train(run_name, 20, 25, 512)

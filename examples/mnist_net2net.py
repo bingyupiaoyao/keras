@@ -68,13 +68,14 @@ from keras.models import Sequential
 from keras.layers import Conv2D, MaxPooling2D, Dense, Flatten
 from keras.optimizers import SGD
 from keras.datasets import mnist
+from keras.utils import plot_model
 
 if K.image_data_format() == 'channels_first':
     input_shape = (1, 28, 28)  # image shape
 else:
     input_shape = (28, 28, 1)  # image shape
 num_classes = 10  # number of classes
-epochs = 3
+epochs = 1
 
 
 # load and pre-process data
@@ -238,7 +239,7 @@ def make_teacher_model(x_train, y_train,
     model.compile(loss='categorical_crossentropy',
                   optimizer=SGD(lr=0.01, momentum=0.9),
                   metrics=['accuracy'])
-
+    plot_model(model, to_file='../output/examples/mnist_net2net_teacher_model.png', show_shapes=True, show_layer_names=True)
     model.fit(x_train, y_train,
               epochs=epochs,
               validation_data=(x_test, y_test))
@@ -289,7 +290,8 @@ def make_wider_student_model(teacher_model,
     model.compile(loss='categorical_crossentropy',
                   optimizer=SGD(lr=0.001, momentum=0.9),
                   metrics=['accuracy'])
-
+    plot_model(model, to_file='../output/examples/mnist_net2net_wider_student_model.png', show_shapes=True,
+               show_layer_names=True)
     model.fit(x_train, y_train,
               epochs=epochs,
               validation_data=(x_test, y_test))
@@ -338,7 +340,8 @@ def make_deeper_student_model(teacher_model,
     model.compile(loss='categorical_crossentropy',
                   optimizer=SGD(lr=0.001, momentum=0.9),
                   metrics=['accuracy'])
-
+    plot_model(model, to_file='../output/examples/mnist_net2net_deeper_student_model.png', show_shapes=True,
+               show_layer_names=True)
     model.fit(x_train, y_train,
               epochs=epochs,
               validation_data=(x_test, y_test))

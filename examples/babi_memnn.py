@@ -24,6 +24,7 @@ from functools import reduce
 import tarfile
 import numpy as np
 import re
+from keras.utils import plot_model
 
 
 def tokenize(sent):
@@ -215,6 +216,9 @@ answer = Activation('softmax')(answer)
 model = Model([input_sequence, question], answer)
 model.compile(optimizer='rmsprop', loss='sparse_categorical_crossentropy',
               metrics=['accuracy'])
+
+plot_model(model, to_file='../output/examples/babi_memnn.png', show_shapes=True,
+           show_layer_names=True)
 
 # train
 model.fit([inputs_train, queries_train], answers_train,

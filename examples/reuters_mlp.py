@@ -9,6 +9,7 @@ from keras.datasets import reuters
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation
 from keras.preprocessing.text import Tokenizer
+from keras.utils import plot_model
 
 max_words = 1000
 batch_size = 32
@@ -48,6 +49,8 @@ model.add(Activation('softmax'))
 model.compile(loss='categorical_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
+
+plot_model(model, to_file='../output/examples/reuters_mlp.png', show_shapes=True, show_layer_names=True)
 
 history = model.fit(x_train, y_train,
                     batch_size=batch_size,

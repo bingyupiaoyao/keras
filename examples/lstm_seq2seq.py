@@ -53,20 +53,21 @@ from __future__ import print_function
 from keras.models import Model
 from keras.layers import Input, LSTM, Dense
 import numpy as np
+from keras.utils import plot_model
 
 batch_size = 64  # Batch size for training.
-epochs = 100  # Number of epochs to train for.
+epochs = 1  # Number of epochs to train for.
 latent_dim = 256  # Latent dimensionality of the encoding space.
 num_samples = 10000  # Number of samples to train on.
 # Path to the data txt file on disk.
-data_path = 'fra-eng/fra.txt'
+data_path = 'Z:\\Master\\Workspace\\Python\\Github\\KerasWithComments\\keras02\\keras\\input\\example\\lstm_seq2seq\\fra.txt'
 
 # Vectorize the data.
 input_texts = []
 target_texts = []
 input_characters = set()
 target_characters = set()
-lines = open(data_path).read().split('\n')
+lines = open(data_path, encoding="utf-8").read().split('\n')
 for line in lines[: min(num_samples, len(lines) - 1)]:
     input_text, target_text = line.split('\t')
     # We use "tab" as the "start sequence" character
@@ -144,12 +145,16 @@ model = Model([encoder_inputs, decoder_inputs], decoder_outputs)
 
 # Run training
 model.compile(optimizer='rmsprop', loss='categorical_crossentropy')
+
+model.summary()
+plot_model(model, to_file='../output/examples/lstm_seq2seq.png', show_shapes=True, show_layer_names=True)
+
 model.fit([encoder_input_data, decoder_input_data], decoder_target_data,
           batch_size=batch_size,
           epochs=epochs,
           validation_split=0.2)
 # Save model
-model.save('s2s.h5')
+model.save('../output/examples/lstm_seq2seq.h5')
 
 # Next: inference mode (sampling).
 # Here's the drill:
@@ -162,6 +167,9 @@ model.save('s2s.h5')
 # Define sampling models
 encoder_model = Model(encoder_inputs, encoder_states)
 
+# encoder_model.summary()
+# plot_model(encoder_model, to_file='../output/examples/lstm_seq2seq_encoder_model.png', show_shapes=True, show_layer_names=True)
+
 decoder_state_input_h = Input(shape=(latent_dim,))
 decoder_state_input_c = Input(shape=(latent_dim,))
 decoder_states_inputs = [decoder_state_input_h, decoder_state_input_c]
@@ -172,6 +180,10 @@ decoder_outputs = decoder_dense(decoder_outputs)
 decoder_model = Model(
     [decoder_inputs] + decoder_states_inputs,
     [decoder_outputs] + decoder_states)
+
+# decoder_model.summary()
+# plot_model(decoder_model, to_file='../output/examples/lstm_seq2seq_decoder_model.png', show_shapes=True, show_layer_names=True)
+
 
 # Reverse-lookup token index to decode sequences back to
 # something readable.

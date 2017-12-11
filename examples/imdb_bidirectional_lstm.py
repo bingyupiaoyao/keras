@@ -11,6 +11,7 @@ from keras.preprocessing import sequence
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Embedding, LSTM, Bidirectional
 from keras.datasets import imdb
+from keras.utils import plot_model
 
 
 max_features = 20000
@@ -40,6 +41,7 @@ model.add(Dense(1, activation='sigmoid'))
 
 # try using different optimizers and different optimizer configs
 model.compile('adam', 'binary_crossentropy', metrics=['accuracy'])
+plot_model(model, to_file='../output/examples/imdb_bidirectional_lstm.png', show_shapes=True, show_layer_names=True)
 
 print('Train...')
 model.fit(x_train, y_train,

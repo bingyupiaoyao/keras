@@ -16,6 +16,7 @@ from keras.layers import Dense, Activation
 from keras.layers import LSTM
 from keras.optimizers import RMSprop
 from keras.utils.data_utils import get_file
+from keras.utils import plot_model
 import numpy as np
 import random
 import sys
@@ -57,6 +58,7 @@ model.add(Activation('softmax'))
 
 optimizer = RMSprop(lr=0.01)
 model.compile(loss='categorical_crossentropy', optimizer=optimizer)
+plot_model(model, to_file='../output/examples/lstm_text_generation.png', show_shapes=True, show_layer_names=True)
 
 
 def sample(preds, temperature=1.0):

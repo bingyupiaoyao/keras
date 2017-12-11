@@ -8,6 +8,7 @@ from keras.layers.convolutional_recurrent import ConvLSTM2D
 from keras.layers.normalization import BatchNormalization
 import numpy as np
 import pylab as plt
+from keras.utils import plot_model
 
 # We create a layer which take as input movies of shape
 # (n_frames, width, height, channels) and returns a movie
@@ -36,6 +37,7 @@ seq.add(Conv3D(filters=1, kernel_size=(3, 3, 3),
                padding='same', data_format='channels_last'))
 seq.compile(loss='binary_crossentropy', optimizer='adadelta')
 
+plot_model(seq, to_file='../output/examples/conv_lstm.png', show_shapes=True, show_layer_names=True)
 
 # Artificial data generation:
 # Generate movies with 3 to 7 moving squares inside.
@@ -84,7 +86,7 @@ def generate_movies(n_samples=1200, n_frames=15):
                                  y_shift - w - 1: y_shift + w + 1,
                                  0] += noise_f * 0.1
 
-                # Shift the ground truth by 1
+                # Shift the ground truth by 1 注意这里加了1，是下一个frame的位置了，所以下面实际上是预测问题
                 x_shift = xstart + directionx * (t + 1)
                 y_shift = ystart + directiony * (t + 1)
                 shifted_movies[i, t, x_shift - w: x_shift + w,

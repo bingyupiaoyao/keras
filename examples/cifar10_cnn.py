@@ -14,6 +14,7 @@ from keras.preprocessing.image import ImageDataGenerator
 from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
+from keras.utils import plot_model
 
 import os
 
@@ -65,6 +66,8 @@ opt = keras.optimizers.rmsprop(lr=0.0001, decay=1e-6)
 model.compile(loss='categorical_crossentropy',
               optimizer=opt,
               metrics=['accuracy'])
+
+plot_model(model, to_file='../output/examples/cifar10_cnn.png', show_shapes=True, show_layer_names=True)
 
 x_train = x_train.astype('float32')
 x_test = x_test.astype('float32')

@@ -12,6 +12,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras import backend as K
+from keras.utils import plot_model
 
 batch_size = 128
 num_classes = 10
@@ -60,11 +61,25 @@ model.compile(loss=keras.losses.categorical_crossentropy,
               optimizer=keras.optimizers.Adadelta(),
               metrics=['accuracy'])
 
+callbacks = [
+    keras.callbacks.TensorBoard(
+        # Log files will be written at this location
+        log_dir='../output/examples/mnist_cnn',
+        write_graph=True,
+        write_images=True,
+        # We will record activation histograms every 1 epoch
+        histogram_freq=1,
+    )
+]
+
+plot_model(model, to_file='../output/examples/mnist_cnn.png', show_shapes=True, show_layer_names=True)
+
 model.fit(x_train, y_train,
           batch_size=batch_size,
           epochs=epochs,
           verbose=1,
-          validation_data=(x_test, y_test))
+          validation_data=(x_test, y_test),
+          callbacks=callbacks)
 score = model.evaluate(x_test, y_test, verbose=0)
 print('Test loss:', score[0])
 print('Test accuracy:', score[1])

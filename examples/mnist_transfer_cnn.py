@@ -20,6 +20,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Dropout, Activation, Flatten
 from keras.layers import Conv2D, MaxPooling2D
 from keras import backend as K
+from keras.utils import plot_model
 
 now = datetime.datetime.now
 
@@ -110,6 +111,8 @@ classification_layers = [
 
 # create complete model
 model = Sequential(feature_layers + classification_layers)
+plot_model(model, to_file='../output/examples/mnist_transfer_cnn.png', show_shapes=True,
+           show_layer_names=True)
 
 # train model for 5-digit classification [0..4]
 train_model(model,

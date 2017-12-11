@@ -55,10 +55,11 @@ input_len = 1000
 tsteps = 4
 
 # The input sequence length that the LSTM is trained on for each output point
+# 每个样本2个时间序列，前后样本之间
 lahead = 3
 
 # training parameters passed to "model.fit(...)"
-batch_size = 1 # 用1效果最好，状态传入下一个batch相应的时间步
+batch_size = 3
 epochs = 10
 
 # ------------
@@ -111,6 +112,8 @@ expected_output = data_input.rolling(window=tsteps, center=False).mean()
 if lahead > 1:
     data_input = np.repeat(data_input.values, repeats=lahead, axis=1)
     data_input = pd.DataFrame(data_input)
+    expected_output = np.repeat(expected_output.values, repeats=lahead, axis=1)
+    expected_output = pd.DataFrame(expected_output)
     for i, c in enumerate(data_input.columns):
         data_input[c] = data_input[c].shift(i)
 
@@ -140,7 +143,7 @@ plt.show()
 def create_model(stateful: bool):
     model = Sequential()
     model.add(LSTM(20,
-              input_shape=(lahead, 1),
+              input_shape=(None,1),
               batch_size=batch_size,
               stateful=stateful))
     model.add(Dense(1))
@@ -169,11 +172,11 @@ def split_data(x, y, ratio: int = 0.8):
         y_test = y_test[:-1 * to_drop]
 
     # some reshaping
-    reshape_3 = lambda x: x.values.reshape((x.shape[0], x.shape[1], 1))
+    reshape_3 = lambda x: x.values.reshape((x.shape[0]*x.shape[1], 1, 1))
     x_train = reshape_3(x_train)
     x_test = reshape_3(x_test)
 
-    reshape_2 = lambda x: x.values.reshape((x.shape[0], 1))
+    reshape_2 = lambda x: x.values.reshape((x.shape[0]*x.shape[1], 1))
     y_train = reshape_2(y_train)
     y_test = reshape_2(y_test)
 
@@ -202,7 +205,7 @@ for i in range(epochs):
                        verbose=1,
                        validation_data=(x_test, y_test),
                        shuffle=False)
-    model_stateful.reset_states()
+    model_stateful.reset_states() # 前面设置了stateful，这里会将前一次的state作为下一次的初始state
 
 print('Predicting')
 predicted_stateful = model_stateful.predict(x_test, batch_size=batch_size)

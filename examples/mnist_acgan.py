@@ -41,6 +41,7 @@ from keras.models import Sequential, Model
 from keras.optimizers import Adam
 from keras.utils.generic_utils import Progbar
 import numpy as np
+from keras.utils import plot_model
 
 np.random.seed(1337)
 
@@ -88,8 +89,10 @@ def build_generator(latent_size):
     h = layers.multiply([latent, cls])
 
     fake_image = cnn(h)
-
-    return Model([latent, image_class], fake_image)
+    plot_model(cnn, to_file='../output/examples/mnist_acgan_generator_cnn.png', show_shapes=True,
+               show_layer_names=True)
+    model = Model([latent, image_class], fake_image)
+    return model
 
 
 def build_discriminator():
@@ -127,7 +130,11 @@ def build_discriminator():
     fake = Dense(1, activation='sigmoid', name='generation')(features)
     aux = Dense(num_classes, activation='softmax', name='auxiliary')(features)
 
-    return Model(image, [fake, aux])
+    model = Model(image, [fake, aux])
+    plot_model(cnn, to_file='../output/examples/mnist_acgan_discriminator_cnn.png', show_shapes=True,
+               show_layer_names=True)
+
+    return model
 
 if __name__ == '__main__':
 
@@ -137,7 +144,7 @@ if __name__ == '__main__':
     latent_size = 100
 
     # Adam parameters suggested in https://arxiv.org/abs/1511.06434
-    adam_lr = 0.0002
+    adam_lr = 0.00005  #0.0002
     adam_beta_1 = 0.5
 
     # build the discriminator
@@ -146,11 +153,15 @@ if __name__ == '__main__':
         optimizer=Adam(lr=adam_lr, beta_1=adam_beta_1),
         loss=['binary_crossentropy', 'sparse_categorical_crossentropy']
     )
+    plot_model(discriminator, to_file='../output/examples/mnist_acgan_discriminator.png', show_shapes=True,
+               show_layer_names=True)
 
     # build the generator
     generator = build_generator(latent_size)
     generator.compile(optimizer=Adam(lr=adam_lr, beta_1=adam_beta_1),
                       loss='binary_crossentropy')
+    plot_model(generator, to_file='../output/examples/mnist_acgan_generator.png', show_shapes=True,
+               show_layer_names=True)
 
     latent = Input(shape=(latent_size, ))
     image_class = Input(shape=(1,), dtype='int32')
@@ -167,6 +178,8 @@ if __name__ == '__main__':
         optimizer=Adam(lr=adam_lr, beta_1=adam_beta_1),
         loss=['binary_crossentropy', 'sparse_categorical_crossentropy']
     )
+    plot_model(combined, to_file='../output/examples/mnist_acgan_combined.png', show_shapes=True,
+               show_layer_names=True)
 
     # get our mnist data, and force it to be of shape (..., 1, 28, 28) with
     # range [-1, 1]

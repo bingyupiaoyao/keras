@@ -18,13 +18,12 @@ import sys
 import numpy as np
 from keras.preprocessing.text import Tokenizer
 from keras.preprocessing.sequence import pad_sequences
-from keras.utils import to_categorical
+from keras.utils import to_categorical, plot_model
 from keras.layers import Dense, Input, GlobalMaxPooling1D
 from keras.layers import Conv1D, MaxPooling1D, Embedding
 from keras.models import Model
 
-
-BASE_DIR = ''
+BASE_DIR = '../input/example/pretrained_word_embeddings'
 GLOVE_DIR = os.path.join(BASE_DIR, 'glove.6B')
 TEXT_DATA_DIR = os.path.join(BASE_DIR, '20_newsgroup')
 MAX_SEQUENCE_LENGTH = 1000
@@ -38,7 +37,7 @@ VALIDATION_SPLIT = 0.2
 print('Indexing word vectors.')
 
 embeddings_index = {}
-f = open(os.path.join(GLOVE_DIR, 'glove.6B.100d.txt'))
+f = open(os.path.join(GLOVE_DIR, 'glove.6B.100d.txt'), encoding="utf-8")
 for line in f:
     values = line.split()
     word = values[0]
@@ -75,11 +74,14 @@ for name in sorted(os.listdir(TEXT_DATA_DIR)):
                 labels.append(label_id)
 
 print('Found %s texts.' % len(texts))
-
+print("text[0]= %s" % texts[0])
+print("text[1]= %s" % texts[1])
 # finally, vectorize the text samples into a 2D integer tensor
 tokenizer = Tokenizer(num_words=MAX_NB_WORDS)
 tokenizer.fit_on_texts(texts)
 sequences = tokenizer.texts_to_sequences(texts)
+print("sequences[0]=%s" % sequences[0])
+print("sequences[1]=%s" % sequences[1])
 
 word_index = tokenizer.word_index
 print('Found %s unique tokens.' % len(word_index))
@@ -141,6 +143,8 @@ model = Model(sequence_input, preds)
 model.compile(loss='categorical_crossentropy',
               optimizer='rmsprop',
               metrics=['acc'])
+
+plot_model(model, to_file='../output/examples/pretrained_word_embeddings.png', show_shapes=True, show_layer_names=True)
 
 model.fit(x_train, y_train,
           batch_size=128,

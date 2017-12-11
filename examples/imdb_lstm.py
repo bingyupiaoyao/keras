@@ -17,6 +17,7 @@ from keras.models import Sequential
 from keras.layers import Dense, Embedding
 from keras.layers import LSTM
 from keras.datasets import imdb
+from keras.utils import  plot_model
 
 max_features = 20000
 maxlen = 80  # cut texts after this number of words (among top max_features most common words)
@@ -43,6 +44,9 @@ model.add(Dense(1, activation='sigmoid'))
 model.compile(loss='binary_crossentropy',
               optimizer='adam',
               metrics=['accuracy'])
+
+model.summary()
+plot_model(model, to_file='../output/examples/imdb_lstm.png', show_shapes=True, show_layer_names=True)
 
 print('Train...')
 model.fit(x_train, y_train,
