@@ -1,11 +1,11 @@
 import tensorflow as tf
-from tensorflow.python.client import device_lib
 from tensorflow.python.training import moving_averages
 from tensorflow.python.ops import tensor_array_ops
 from tensorflow.python.ops import control_flow_ops
 from tensorflow.python.ops import functional_ops
 from tensorflow.python.ops import ctc_ops as ctc
 from tensorflow.python.ops import variables as tf_variables
+from tensorflow.python.client import device_lib
 
 from collections import defaultdict
 
@@ -36,7 +36,7 @@ _GRAPH_LEARNING_PHASES = {}
 
 # This dictionary holds a mapping {graph: UID_DICT}.
 # each UID_DICT is a dictionary mapping name prefixes to a current index,
-# used for generic graph-specific string UIDs
+# used for generating graph-specific string UIDs
 # for various names (e.g. layer names).
 _GRAPH_UID_DICTS = {}
 
@@ -45,9 +45,10 @@ _GRAPH_UID_DICTS = {}
 # Change its value via `manual_variable_initialization(value)`.
 _MANUAL_VAR_INIT = False
 
-# This list queries the devices.
+# This list holds the available devices.
+# It is populated when `_get_available_gpus()` is called for the first time.
 # We assume our devices don't change during our lifetime.
-_LOCAL_DEVICES = device_lib.list_local_devices()
+_LOCAL_DEVICES = None
 
 
 def get_uid(prefix=''):
@@ -174,17 +175,22 @@ def get_session():
             for v in variables:
                 if not getattr(v, '_keras_initialized', False):
                     candidate_vars.append(v)
-            # This step is expensive, so we only run it on variables
-            # not already marked as initialized.
-            is_initialized = session.run(
-                [tf.is_variable_initialized(v) for v in candidate_vars])
-            uninitialized_vars = []
-            for flag, v in zip(is_initialized, candidate_vars):
-                if not flag:
-                    uninitialized_vars.append(v)
-                v._keras_initialized = True
-            if uninitialized_vars:
-                session.run(tf.variables_initializer(uninitialized_vars))
+            if candidate_vars:
+                # This step is expensive, so we only run it on variables
+                # not already marked as initialized.
+                is_initialized = session.run(
+                    [tf.is_variable_initialized(v) for v in candidate_vars])
+                uninitialized_vars = []
+                for flag, v in zip(is_initialized, candidate_vars):
+                    if not flag:
+                        uninitialized_vars.append(v)
+                    v._keras_initialized = True
+                if uninitialized_vars:
+                    session.run(tf.variables_initializer(uninitialized_vars))
+    # hack for list_devices() function.
+    # list_devices() function is not available under tensorflow r1.3.
+    if not hasattr(session, 'list_devices'):
+        session.list_devices = lambda: device_lib.list_local_devices()
     return session
 
 
@@ -250,6 +256,9 @@ def _get_available_gpus():
     # Returns
         A list of available GPU devices.
     """
+    global _LOCAL_DEVICES
+    if _LOCAL_DEVICES is None:
+        _LOCAL_DEVICES = get_session().list_devices()
     return [x.name for x in _LOCAL_DEVICES if x.device_type == 'GPU']
 
 
@@ -356,7 +365,7 @@ def variable(value, dtype=None, name=None, constraint=None):
         'float64'
         >>> print(kvar)
         example_var
-        >>> kvar.eval()
+        >>> K.eval(kvar)
         array([[ 1.,  2.],
                [ 3.,  4.]])
     ```
@@ -654,6 +663,8 @@ def zeros(shape, dtype=None, name=None):
 
     # Returns
         A variable (including Keras metadata), filled with `0.0`.
+        Note that if `shape` was symbolic, we cannot return a variable,
+        and will return a dynamically-shaped tensor instead.
 
     # Example
     ```python
@@ -668,12 +679,14 @@ def zeros(shape, dtype=None, name=None):
     if dtype is None:
         dtype = floatx()
     tf_dtype = tf.as_dtype(dtype)
-    return variable(tf.constant_initializer(0., dtype=tf_dtype)(shape),
-                    dtype, name)
+    v = tf.zeros(shape=shape, dtype=tf_dtype, name=name)
+    if py_all(v.get_shape().as_list()):
+        return variable(v, dtype=dtype, name=name)
+    return v
 
 
 def ones(shape, dtype=None, name=None):
-    """Instantiates an all-ones tensor variable and returns it.
+    """Instantiates an all-ones variable and returns it.
 
     # Arguments
         shape: Tuple of integers, shape of returned Keras variable.
@@ -682,6 +695,8 @@ def ones(shape, dtype=None, name=None):
 
     # Returns
         A Keras variable, filled with `1.0`.
+        Note that if `shape` was symbolic, we cannot return a variable,
+        and will return a dynamically-shaped tensor instead.
 
     # Example
     ```python
@@ -696,8 +711,10 @@ def ones(shape, dtype=None, name=None):
     if dtype is None:
         dtype = floatx()
     tf_dtype = tf.as_dtype(dtype)
-    return variable(tf.constant_initializer(1., dtype=tf_dtype)(shape),
-                    dtype, name)
+    v = tf.ones(shape=shape, dtype=tf_dtype, name=name)
+    if py_all(v.get_shape().as_list()):
+        return variable(v, dtype=dtype, name=name)
+    return v
 
 
 def eye(size, dtype=None, name=None):
@@ -885,7 +902,7 @@ def count_params(x):
                [ 0.,  0.,  0.]], dtype=float32)
     ```
     """
-    return np.prod(get_variable_shape(x))
+    return np.prod(int_shape(x))
 
 
 def cast(x, dtype):
@@ -1073,7 +1090,7 @@ def batch_dot(x, y, axes=None):
 
     # Examples
         Assume `x = [[1, 2], [3, 4]]` and `y = [[5, 6], [7, 8]]`
-        `batch_dot(x, y, axes=1) = [[17, 53]]` which is the main diagonal
+        `batch_dot(x, y, axes=1) = [[17], [53]]` which is the main diagonal
         of `x.dot(y.T)`, although we never have to calculate the off-diagonal
         elements.
 
@@ -2282,11 +2299,21 @@ def print_tensor(x, message=''):
 class Function(object):
     """Runs a computation graph.
 
+    It's possible to pass arguments to `tf.Session.run()` via `session_kwargs`.
+    In particular additonal operations via `fetches` argument and additional
+    tensor substitutions via `feed_dict` arguments. Note that given
+    substitutions are merged with substitutions from `inputs`. Even though
+    `feed_dict` is passed once in the constructor (called in `model.compile()`)
+    we can modify the values in the dictionary. Through this feed_dict we can
+    provide additional substitutions besides Keras inputs.
+
     # Arguments
         inputs: Feed placeholders to the computation graph.
         outputs: Output tensors to fetch.
         updates: Additional update ops to be run at function call.
         name: a name to help users identify what this function does.
+        session_kwargs: arguments to `tf.Session.run()`: `fetches`, `feed_dict`,
+        `options`, `run_metadata`
     """
 
     def __init__(self, inputs, outputs, updates=None, name=None, **session_kwargs):
@@ -2313,12 +2340,18 @@ class Function(object):
                     updates_ops.append(update)
             self.updates_op = tf.group(*updates_ops)
         self.name = name
+        # additional tensor substitutions
+        self.feed_dict = session_kwargs.pop('feed_dict', {})
+        # additional operations
+        self.fetches = session_kwargs.pop('fetches', [])
+        if not isinstance(self.fetches, list):
+            self.fetches = [self.fetches]
         self.session_kwargs = session_kwargs
 
     def __call__(self, inputs):
         if not isinstance(inputs, (list, tuple)):
             raise TypeError('`inputs` should be a list or tuple.')
-        feed_dict = {}
+        feed_dict = self.feed_dict.copy()
         for tensor, value in zip(self.inputs, inputs):
             if is_sparse(tensor):
                 sparse_coo = value.tocoo()
@@ -2326,9 +2359,9 @@ class Function(object):
                                           np.expand_dims(sparse_coo.col, 1)), 1)
                 value = (indices, sparse_coo.data, sparse_coo.shape)
             feed_dict[tensor] = value
+        fetches = self.outputs + [self.updates_op] + self.fetches
         session = get_session()
-        updated = session.run(self.outputs + [self.updates_op],
-                              feed_dict=feed_dict,
+        updated = session.run(fetches=fetches, feed_dict=feed_dict,
                               **self.session_kwargs)
         return updated[:len(self.outputs)]
 
@@ -2440,6 +2473,9 @@ def rnn(step_function, inputs, initial_states,
     ndim = len(inputs.get_shape())
     if ndim < 3:
         raise ValueError('Input should be at least 3D.')
+
+    # Transpose to time-major, i.e.
+    # from (batch, time, ...) to (time, batch, ...)
     axes = [1, 0] + list(range(2, ndim))
     inputs = tf.transpose(inputs, (axes))
 
@@ -2892,8 +2928,9 @@ def sparse_categorical_crossentropy(target, output, from_logits=False):
     res = tf.nn.sparse_softmax_cross_entropy_with_logits(
         labels=targets,
         logits=logits)
-    if len(output_shape) == 3:
-        # if our output includes timesteps we need to reshape
+    if len(output_shape) >= 3:
+        # if our output includes timestep dimension
+        # or spatial dimensions we need to reshape
         return tf.reshape(res, tf.shape(output)[:-1])
     else:
         return res
@@ -3020,25 +3057,6 @@ def in_top_k(predictions, targets, k):
 
 
 # CONVOLUTIONS
-
-def _preprocess_deconv3d_output_shape(x, shape, data_format):
-    """Get the output_shape for the 3D deconvolution.
-
-    # Arguments
-        x: input tensor.
-        shape: output shape.
-        data_format: string, `"channels_last"` or `"channels_first"`.
-
-    # Returns
-        The output shape.
-    """
-    if data_format == 'channels_first':
-        shape = (shape[0], shape[2], shape[3], shape[4], shape[1])
-
-    if shape[0] is None:
-        shape = (tf.shape(x)[0], ) + tuple(shape[1:])
-        shape = tf.stack(list(shape))
-    return shape
 
 
 def _preprocess_conv2d_input(x, data_format):
