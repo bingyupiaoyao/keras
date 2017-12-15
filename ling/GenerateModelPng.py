@@ -23,7 +23,10 @@ plot_model(model, to_file=OUTPUT_DIR+'/ResNet50_model.png',show_shapes=True,show
 model.summary()
 model = applications.inception_v3.InceptionV3(include_top=True, weights='imagenet', input_tensor=None, input_shape=None,
                                       pooling=None, classes=1000)
+plot_model(model, to_file=OUTPUT_DIR+'/InceptionV3_model.png',show_shapes=True,show_layer_names=True,rankdir="TB")
+model.summary()
 model = applications.mobilenet.MobileNet(input_shape=None, alpha=1.0, depth_multiplier=1, dropout=1e-3, include_top=True,
                                  weights='imagenet', input_tensor=None, pooling=None, classes=1000)
-
+plot_model(model, to_file=OUTPUT_DIR+'/MobileNet_model.png',show_shapes=True,show_layer_names=True,rankdir="TB")
+model.summary()
 
