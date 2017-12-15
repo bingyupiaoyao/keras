@@ -68,7 +68,7 @@ def build_generator(latent_size):
                             activation='tanh',
                             kernel_initializer='glorot_normal'))
 
-    # this is the z space commonly refered to in GAN papers
+    # this is the z space commonly referred to in GAN papers
     latent = Input(shape=(latent_size, ))
 
     # this will be our label
@@ -151,8 +151,8 @@ if __name__ == '__main__':
 
     # build the generator
     generator = build_generator(latent_size)
-    generator.compile(optimizer=Adam(lr=adam_lr, beta_1=adam_beta_1),
-                      loss='binary_crossentropy')
+#    generator.compile(optimizer=Adam(lr=adam_lr, beta_1=adam_beta_1),
+#                      loss='binary_crossentropy')
     plot_model(generator, to_file='../output/examples/mnist_acgan_generator.png', show_shapes=True,
                show_layer_names=True)
 
@@ -196,10 +196,10 @@ if __name__ == '__main__':
         progress_bar = Progbar(target=num_batches)
 
         # we don't want the discriminator to also maximize the classification
-        # accuracy of the auxilary classifier on generated images, so we
+        # accuracy of the auxiliary classifier on generated images, so we
         # don't train discriminator to produce class labels for generated
         # images (see https://openreview.net/forum?id=rJXTf9Bxg).
-        # To preserve sum of sample weights for the auxilary classifier,
+        # To preserve sum of sample weights for the auxiliary classifier,
         # we assign sample weight of 2 to the real images.
         disc_sample_weight = [np.ones(2 * batch_size),
                               np.concatenate((np.ones(batch_size) * 2,
